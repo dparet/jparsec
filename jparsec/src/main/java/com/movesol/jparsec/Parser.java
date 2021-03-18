@@ -21,7 +21,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.movesol.jparsec.ParseContext.ErrorType;
 import com.movesol.jparsec.error.Location;
+import com.movesol.jparsec.error.ParseErrorDetails;
 import com.movesol.jparsec.error.ParserException;
 import com.movesol.jparsec.functors.Map;
 import com.movesol.jparsec.functors.Map2;
@@ -435,6 +437,91 @@ public abstract class Parser<T> {
    */
   public final <R> Parser<R> ifelse(Parser<? extends R> consequence, Parser<? extends R> alternative) {
     return ifelse(Maps.constant(consequence), alternative);
+  }
+  
+	/**
+	 * A {@link Parser} that runs {@code handler} if {@code this} fails and
+	 * {@code accepted} also fails on the Token that triggered an error in
+	 * {@code this}. The result it that of {@code handler}.
+	 */
+  public final Parser<T> recover(final Map<ParseErrorDetails, ? extends T> handler, final Parser<Void> accepted) {
+    return recover(handler, accepted, null);
+  }
+  
+	/**
+	 * A {@link Parser} that runs {@code consumer} while ignoring its result if
+	 * {@code this} fails and {@code accepted} also fails on the Token that
+	 * triggered an error in {@code this}. The result it that of {@code handler}.
+	 */
+  public final Parser<T> recover(final Map<ParseErrorDetails, ? extends T> handler, final Parser<Void> accepted, final Parser<Void> consumer) {
+	    return new Parser<T>() {
+	      @Override
+	      boolean apply(ParseContext ctxt) {
+	        if (!Parser.this.apply(ctxt)) {
+	        	if (ctxt.isEof()) {
+	        		ctxt.raise(ErrorType.UNEXPECTED, "EOF");
+	        		return false;
+	        	}
+	        	
+	          final int stepBeforeAccepted = ctxt.step;
+	          final int atBeforeAccepted = ctxt.at;
+	          final ParseErrorDetails ped = ctxt.renderError();
+
+	          if (ctxt.withErrorSuppressed(accepted)) {
+	            ctxt.setAt(stepBeforeAccepted, atBeforeAccepted);
+	            return false;
+	          } else {
+  	        	if(consumer != null) {
+                ctxt.setAt(ctxt.step + 1, ctxt.at + 1);
+  	        		while (!(ctxt.isEof() || ctxt.applyAsDelimiter(consumer) || ctxt.applyAsDelimiter(accepted))) {
+  	        			ctxt.next();
+  	        		}
+                if (!ctxt.isEof()) {
+                  ctxt.setAt(ctxt.step - 1, ctxt.at - 1);
+                }
+  	        	} else {
+  	        		ctxt.next();
+  	        	}
+	            ctxt.result = handler.map(ped);
+	  					if (ctxt instanceof ParserState) {
+	  						Parsers.applyListener(ctxt, atBeforeAccepted, ctxt.at - 1);
+	  					}
+	          }
+	        }
+	        return true;
+	      }
+	    };
+	  }
+  
+  /**
+   * A {@link Parser} that runs {@code consequence} if {@code this} succeeds, or {@code alternative} otherwise.
+   */
+  public final <R> Parser<R> ifelse(
+      final Map<? super T, ? extends Parser<? extends R>> consequence,
+      final Map<ParseErrorDetails, Parser<? extends R>> alternative) {
+    return new Parser<R>() {
+      @Override boolean apply(ParseContext ctxt) {
+      	if (ctxt.isEof()) {
+      		ctxt.raise(ErrorType.UNEXPECTED, "EOF");
+      		return false;
+      	}
+      	
+        final Object ret = ctxt.result;
+        final int step = ctxt.step;
+        final int at = ctxt.at;
+        
+        if (Parser.this.apply(ctxt)) {
+          Parser<? extends R> parser = consequence.map(Parser.this.getReturn(ctxt));
+          return parser.apply(ctxt);
+        }
+        final ParseErrorDetails ped = ctxt.renderError();
+        ctxt.set(step, at, ret);
+        return alternative.map(ped).apply(ctxt);
+      }
+      @Override public String toString() {
+        return "ifelse";
+      }
+    };
   }
 
   /**
