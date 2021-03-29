@@ -32,7 +32,7 @@ public class EmptyParseErrorTest {
 
   @Test
   public void testEmptyParseError() {
-    EmptyParseError error = new EmptyParseError(1, "foo");
+    EmptyParseError error = new EmptyParseError(1, 2, 3,"foo");
     assertEquals(1, error.getIndex());
     assertEquals("foo", error.getEncountered());
     assertNull(error.getUnexpected());

@@ -27,6 +27,12 @@ public interface ParseErrorDetails {
   /** Returns the 0-based index in the source where the error happened. */
   int getIndex();
   
+  /** Returns the 0-based index of the first token to be handled  */
+  int getAt();
+
+  /** Returns the 0-based index of the token where the error happened */
+  int getErrorAt();
+
   /** Returns the physical input encountered when the error happened. */
   String getEncountered();
   

@@ -228,13 +228,13 @@ abstract class ParseContext {
     }
     switch (currentErrorType) {
     case UNEXPECTED :
-      return new EmptyParseError(errorIndex, encounteredName) {
+      return new EmptyParseError(errorIndex, at, currentErrorAt, encounteredName) {
         @Override public String getUnexpected() {
           return errorStrings.get(0);
         }
       };
     case FAILURE :
-      return new EmptyParseError(errorIndex, encounteredName) {
+      return new EmptyParseError(errorIndex, at, currentErrorAt, encounteredName) {
         @Override public String getFailureMessage() {
           return errorStrings.get(0);
         }
@@ -242,13 +242,13 @@ abstract class ParseContext {
     case EXPECTING:
     case MISSING:
     case DELIMITING:
-      return new EmptyParseError(errorIndex, encounteredName) {
+      return new EmptyParseError(errorIndex, at, currentErrorAt, encounteredName) {
         @Override public List<String> getExpected() {
           return errorStrings;
         }
       };
     default:
-      return new EmptyParseError(errorIndex, encounteredName);
+      return new EmptyParseError(errorIndex, at, currentErrorAt, encounteredName);
     }
   }
 

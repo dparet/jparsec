@@ -30,16 +30,20 @@ class EmptyParseError implements ParseErrorDetails {
   
   private final int index;
   private final String encountered;
+  private final int at;
+  private final int errorAt;
   
-  EmptyParseError(int index, String encountered) {
+  EmptyParseError(int index, int at, int errorAt, String encountered) {
     this.index = index;
     this.encountered = encountered;
+    this.at = at;
+    this.errorAt = errorAt;
   }
   
   @Override public final String getEncountered() {
     return encountered;
   }
-
+  
   @Override public List<String> getExpected() {
     return Collections.emptyList();
   }
@@ -54,5 +58,15 @@ class EmptyParseError implements ParseErrorDetails {
 
   @Override public String getUnexpected() {
     return null;
+  }
+
+  @Override
+  public int getAt() {
+    return at;
+  }
+
+  @Override
+  public int getErrorAt() {
+    return errorAt;
   }
 }
