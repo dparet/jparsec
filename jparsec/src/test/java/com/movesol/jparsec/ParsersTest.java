@@ -5,6 +5,7 @@ import static com.movesol.jparsec.Parsers.always;
 import static com.movesol.jparsec.TestParsers.areChars;
 import static com.movesol.jparsec.TestParsers.isChar;
 import static org.easymock.EasyMock.expect;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
@@ -647,4 +648,83 @@ public class ParsersTest extends BaseMockTest {
     assertSame(p2, array[1]);
   }
 
+  @Test
+  public void testSequenceAnyOrder_1() {
+    Parser<?> parser = Parsers.sequenceAnyOrder(Scanners.isChar('a'), Scanners.isChar('b'), Scanners.isChar('c'));
+    parser.parse("abc", mode);
+    parser.parse("bac", mode);
+    parser.parse("cab", mode);
+    assertFailure(mode, parser, "xbc", 1, 1);
+    assertFailure(mode, parser, "axc", 1, 2);
+    assertFailure(mode, parser, "abx", 1, 3);
+  }
+
+  @Test
+  public void testSequenceAnyOrder_2() {
+    Parser<?> parser = Parsers.sequenceAnyOrder(Scanners.isChar('a').optional(), Scanners.isChar('b'), Scanners.isChar('c'));
+    parser.parse("abc", mode);
+    parser.parse("bac", mode);
+    parser.parse("cab", mode);
+    parser.parse("bc", mode);
+    parser.parse("bc", mode);
+    parser.parse("cb", mode);
+    assertFailure(mode, parser, "xbc", 1, 1);
+    assertFailure(mode, parser, "axc", 1, 2);
+    assertFailure(mode, parser, "abx", 1, 3);
+    assertFailure(mode, parser, "abx", 1, 3);
+    assertFailure(mode, parser, "aabc", 1, 2);
+  }
+
+  @Test
+  public void testSequenceAnyOrder_3() {
+    Terminals kws = Terminals.operators("(", ")", ".").words(Scanners.IDENTIFIER).keywords(Arrays.asList(new String[]{"kw1", "kw2", "kw3"})).build();
+    Parser<Object> tokenizer = kws.tokenizer().cast().or(Scanners.IDENTIFIER);
+    Parser<String> id = Terminals.Identifier.PARSER;
+    Parser<String> p1 = kws.token("kw1").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>"));
+    Parser<String> p2 = kws.token("kw2").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>"));
+    Parser<String> p3 = kws.token("kw3").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>"));
+
+    Parser<Object[]> p = Parsers.sequenceAnyOrder(p1, p2, p3).followedBy(kws.token(".")).from(tokenizer, Scanners.WHITESPACES.optional());
+    assertArrayEquals(new Object[] {"<Empty>", "<Empty>", "<Empty>"}, p.parse("kw1 kw2 kw3."));
+    assertArrayEquals(new Object[] {"<Empty>", "<Empty>", "<Empty>"}, p.parse("kw2 kw1 kw3."));
+    assertArrayEquals(new Object[] {"aaa", "bbb", "ccc"}, p.parse("kw1(aaa) kw2(bbb) kw3(ccc)."));
+    assertArrayEquals(new Object[] {"ccc", "aaa", "bbb"}, p.parse("kw2(aaa) kw3(bbb) kw1(ccc)."));
+  }
+
+  public void testSequenceAnyOrder_4() {
+    Terminals kws = Terminals.operators("(", ")", ".").words(Scanners.IDENTIFIER).keywords(Arrays.asList(new String[]{"kw1", "kw2", "kw3"})).build();
+    Parser<Object> tokenizer = kws.tokenizer().cast().or(Scanners.IDENTIFIER);
+    Parser<String> id = Terminals.Identifier.PARSER;
+    Parser<String> p1 = kws.token("kw1").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>")).optional();
+    Parser<String> p2 = kws.token("kw2").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>")).optional();
+    Parser<String> p3 = kws.token("kw3").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>")).optional();
+
+    Parser<Object[]> p = Parsers.sequenceAnyOrder(p1, p2, p3).followedBy(kws.token(".")).from(tokenizer, Scanners.WHITESPACES.optional());
+    assertArrayEquals(new Object[] {"<Empty>", "<Empty>", "<Empty>"}, p.parse("kw1 kw2 kw3."));
+    assertArrayEquals(new Object[] {"<Empty>", "<Empty>", "<Empty>"}, p.parse("kw2 kw1 kw3."));
+    assertArrayEquals(new Object[] {"aaa", "bbb", "ccc"}, p.parse("kw1(aaa) kw2(bbb) kw3(ccc)."));
+    assertArrayEquals(new Object[] {"ccc", "aaa", "bbb"}, p.parse("kw2(aaa) kw3(bbb) kw1(ccc)."));
+    assertArrayEquals(new Object[] {"ccc", null, "bbb"}, p.parse("kw3(bbb) kw1(ccc)."));
+    assertArrayEquals(new Object[] {null, null, "bbb"}, p.parse("kw3(bbb)."));
+    assertArrayEquals(new Object[] {null, null, null}, p.parse("."));
+  }
+
+  @Test
+  public void testSequenceAnyOrder_5() {
+    Terminals kws = Terminals.operators("(", ")", ".").words(Scanners.IDENTIFIER).keywords(Arrays.asList(new String[]{"kw1", "kw2", "kw3"})).build();
+    Parser<Object> tokenizer = kws.tokenizer().cast().or(Scanners.IDENTIFIER);
+    Parser<String> id = Terminals.Identifier.PARSER;
+    Parser<String> p1 = kws.token("kw1").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>")).optional("<Absent>");
+    Parser<String> p2 = kws.token("kw2").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>")).optional("<Absent>");
+    Parser<String> p3 = kws.token("kw3").next(id.between(kws.token("("), kws.token(")")).optional("<Empty>")).optional("<Absent>");
+
+    Parser<Object[]> p = Parsers.sequenceAnyOrder(p1, p2, p3).followedBy(kws.token(".")).from(tokenizer, Scanners.WHITESPACES.optional());
+    assertArrayEquals(new Object[] {"<Empty>", "<Empty>", "<Empty>"}, p.parse("kw1 kw2 kw3."));
+    assertArrayEquals(new Object[] {"<Empty>", "<Empty>", "<Empty>"}, p.parse("kw2 kw1 kw3."));
+    assertArrayEquals(new Object[] {"aaa", "bbb", "ccc"}, p.parse("kw1(aaa) kw2(bbb) kw3(ccc)."));
+    assertArrayEquals(new Object[] {"ccc", "aaa", "bbb"}, p.parse("kw2(aaa) kw3(bbb) kw1(ccc)."));
+    assertArrayEquals(new Object[] {"ccc", "<Absent>", "bbb"}, p.parse("kw3(bbb) kw1(ccc)."));
+    assertArrayEquals(new Object[] {"<Absent>", "<Absent>", "bbb"}, p.parse("kw3(bbb)."));
+    assertArrayEquals(new Object[] {"<Absent>", "<Absent>", "<Absent>"}, p.parse("."));
+  }
 }

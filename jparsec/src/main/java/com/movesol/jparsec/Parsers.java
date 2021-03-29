@@ -16,8 +16,14 @@
 package com.movesol.jparsec;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.movesol.jparsec.functors.Map;
 import com.movesol.jparsec.functors.Map2;
@@ -868,6 +874,68 @@ public final class Parsers {
       }
     });
   }
+
+  /** 
+   * A {@link Parser} is similar to {@link Parsers#sequence(Parser...)} but parsers can be run in any order. 
+   */
+	public static <T> Parser<Object[]> sequenceAnyOrder(Parser<?>... parsers) {
+		return new Parser<Object[]>() {
+			@Override boolean apply(ParseContext ctxt) {
+
+        final Object[] result = new Object[parsers.length];
+
+        final Object m = new Object();
+
+        Parser<?>[] p = new Parser<?>[parsers.length];
+        for (int i = 0; i < parsers.length; i++) {
+          p[i] = parsers[i].or(Parsers.always().retn(m).cast());
+        }
+
+        boolean[] opts = new boolean[p.length];
+        Arrays.fill(opts, false);
+        
+        while (true) {
+
+          int i = 0;
+          for (i = 0; i < p.length; i++) {
+            int at1 = ctxt.at;
+
+            if (p[i] == null) continue;
+            if (p[i].apply(ctxt)) {
+              Object res = p[i].getReturn(ctxt);
+              int at2 = ctxt.at;
+
+              if (res != m && at1 == at2) {
+                opts[i] = true;
+              } else if (res != m) {
+                result[i] = res;
+                p[i] = null;
+                break;
+              }
+            }
+          }
+
+          if (i == p.length) break;
+        }
+
+        for (int i = 0; i < p.length; i++) {
+          if (p[i] != null && !opts[i]) return false;
+          if (result[i] == null && opts[i]) {
+            parsers[i].apply(ctxt);
+            result[i] = ctxt.result;
+          }
+        }
+
+        ctxt.result = result;
+        return true;
+			}
+
+			@Override public String toString() {
+				return "sequenceAnyOrder";
+			}
+		};
+	}
+
 
   @Private static <T> Parser<T>[] toArrayWithIteration(
       Iterable<? extends Parser<? extends T>> parsers) {
