@@ -471,15 +471,14 @@ public abstract class Parser<T> {
 	            ctxt.setAt(stepBeforeAccepted, atBeforeAccepted);
 	            return false;
 	          } else {
-  	        	if(consumer != null) {
-                if(consumer != null) {
-                  ctxt.next();
-                  while (!(ctxt.isEof()
-                      || ctxt.applyAsDelimiter(consumer.peek())
-                      || ctxt.applyAsDelimiter(accepted.peek()))) {
-                      ctxt.next();
-                  }
-              }  	        	} else {
+  	        	if (consumer != null) {
+                ctxt.next();
+                while (!(ctxt.isEof()
+                    || ctxt.applyAsDelimiter(consumer.peek())
+                    || ctxt.applyAsDelimiter(accepted.peek()))) {
+                    ctxt.next();
+                }
+  	        	} else {
   	        		ctxt.next();
   	        	}
 	            ctxt.result = handler.map(ped);
