@@ -472,14 +472,14 @@ public abstract class Parser<T> {
 	            return false;
 	          } else {
   	        	if(consumer != null) {
-                ctxt.setAt(ctxt.step + 1, ctxt.at + 1);
-  	        		while (!(ctxt.isEof() || ctxt.applyAsDelimiter(consumer) || ctxt.applyAsDelimiter(accepted))) {
-  	        			ctxt.next();
-  	        		}
-                if (!ctxt.isEof()) {
-                  ctxt.setAt(ctxt.step - 1, ctxt.at - 1);
-                }
-  	        	} else {
+                if(consumer != null) {
+                  ctxt.next();
+                  while (!(ctxt.isEof()
+                      || ctxt.applyAsDelimiter(consumer.peek())
+                      || ctxt.applyAsDelimiter(accepted.peek()))) {
+                      ctxt.next();
+                  }
+              }  	        	} else {
   	        		ctxt.next();
   	        	}
 	            ctxt.result = handler.map(ped);
