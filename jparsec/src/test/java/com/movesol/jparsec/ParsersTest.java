@@ -7,28 +7,26 @@ import static com.movesol.jparsec.TestParsers.isChar;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import com.movesol.jparsec.Parser;
-import com.movesol.jparsec.Parsers;
-import com.movesol.jparsec.Scanners;
-import com.movesol.jparsec.Token;
-import com.movesol.jparsec.TokenMap;
 import com.movesol.jparsec.Parser.Mode;
 import com.movesol.jparsec.easymock.BaseMockTest;
+import com.movesol.jparsec.error.ParserException;
 import com.movesol.jparsec.functors.Map2;
 import com.movesol.jparsec.functors.Map3;
 import com.movesol.jparsec.functors.Map4;
 import com.movesol.jparsec.functors.Map5;
 import com.movesol.jparsec.functors.Tuples;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /**
  * Unit test for {@link Parsers}.
@@ -650,7 +648,7 @@ public class ParsersTest extends BaseMockTest {
 
   @Test
   public void testSequenceAnyOrder_1() {
-    Parser<?> parser = Parsers.sequenceAnyOrder(Scanners.isChar('a'), Scanners.isChar('b'), Scanners.isChar('c'));
+    Parser<?> parser = Parsers.sequenceAnyOrder(Scanners.isChar('a').map(a -> "a"), Scanners.isChar('b').map(a -> "b"), Scanners.isChar('c').map(a -> "c"));
     parser.parse("abc", mode);
     parser.parse("bac", mode);
     parser.parse("cab", mode);
@@ -661,7 +659,7 @@ public class ParsersTest extends BaseMockTest {
 
   @Test
   public void testSequenceAnyOrder_2() {
-    Parser<?> parser = Parsers.sequenceAnyOrder(Scanners.isChar('a').optional(), Scanners.isChar('b'), Scanners.isChar('c'));
+    Parser<?> parser = Parsers.sequenceAnyOrder(Scanners.isChar('a').optional().map(a -> "a"), Scanners.isChar('b').map(a -> "b"), Scanners.isChar('c').map(a -> "c"));
     parser.parse("abc", mode);
     parser.parse("bac", mode);
     parser.parse("cab", mode);
@@ -691,6 +689,7 @@ public class ParsersTest extends BaseMockTest {
     assertArrayEquals(new Object[] {"ccc", "aaa", "bbb"}, p.parse("kw2(aaa) kw3(bbb) kw1(ccc)."));
   }
 
+  @Test
   public void testSequenceAnyOrder_4() {
     Terminals kws = Terminals.operators("(", ")", ".").words(Scanners.IDENTIFIER).keywords(Arrays.asList(new String[]{"kw1", "kw2", "kw3"})).build();
     Parser<Object> tokenizer = kws.tokenizer().cast().or(Scanners.IDENTIFIER);
@@ -706,7 +705,14 @@ public class ParsersTest extends BaseMockTest {
     assertArrayEquals(new Object[] {"ccc", "aaa", "bbb"}, p.parse("kw2(aaa) kw3(bbb) kw1(ccc)."));
     assertArrayEquals(new Object[] {"ccc", null, "bbb"}, p.parse("kw3(bbb) kw1(ccc)."));
     assertArrayEquals(new Object[] {null, null, "bbb"}, p.parse("kw3(bbb)."));
-    assertArrayEquals(new Object[] {null, null, null}, p.parse("."));
+    try {
+      assertArrayEquals(new Object[] {null, null, null}, p.parse("."));
+      fail();
+    } catch (ParserException e) {
+    }
+
+    Parser<Object[]> p4 = Parsers.sequenceAnyOrder(p1, p2, p3).optional().followedBy(kws.token(".")).from(tokenizer, Scanners.WHITESPACES.optional());
+    assertNull(p4.parse("."));
   }
 
   @Test
@@ -725,6 +731,14 @@ public class ParsersTest extends BaseMockTest {
     assertArrayEquals(new Object[] {"ccc", "aaa", "bbb"}, p.parse("kw2(aaa) kw3(bbb) kw1(ccc)."));
     assertArrayEquals(new Object[] {"ccc", "<Absent>", "bbb"}, p.parse("kw3(bbb) kw1(ccc)."));
     assertArrayEquals(new Object[] {"<Absent>", "<Absent>", "bbb"}, p.parse("kw3(bbb)."));
-    assertArrayEquals(new Object[] {"<Absent>", "<Absent>", "<Absent>"}, p.parse("."));
+    try {
+      assertNull(p.parse("."));
+      fail();
+    } catch (ParserException e) {
+    }
+
+    Parser<Object[]> p4 = Parsers.sequenceAnyOrder(p1, p2, p3).optional().followedBy(kws.token(".")).from(tokenizer, Scanners.WHITESPACES.optional());
+    assertNull(p4.parse("."));
   }
+ 
 }

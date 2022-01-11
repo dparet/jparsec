@@ -18,12 +18,8 @@ package com.movesol.jparsec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.function.BooleanSupplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Objects;
 
 import com.movesol.jparsec.functors.Map;
 import com.movesol.jparsec.functors.Map2;
@@ -892,6 +888,7 @@ public final class Parsers {
         }
 
         boolean[] opts = new boolean[p.length];
+        Object[] optsValues = new Object[p.length];
         Arrays.fill(opts, false);
         
         while (true) {
@@ -907,6 +904,7 @@ public final class Parsers {
 
               if (res != m && at1 == at2) {
                 opts[i] = true;
+                optsValues[i] = res;
               } else if (res != m) {
                 result[i] = res;
                 p[i] = null;
@@ -926,9 +924,15 @@ public final class Parsers {
           }
         }
 
-        ctxt.result = result;
-        return true;
-			}
+        for (int i = 0; i < p.length; i++) {
+          if ((!opts[i] && result[i] != null) || (opts[i] && !Objects.equals(result[i], optsValues[i]))) { // The parser is successfull only if at least on parser of the array is successful
+            ctxt.result = result;
+            return true;
+          }
+        }
+
+        return false;
+      }
 
 			@Override public String toString() {
 				return "sequenceAnyOrder";
