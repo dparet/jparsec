@@ -35,6 +35,8 @@ import com.movesol.jparsec.functors.Tuple3;
 import com.movesol.jparsec.functors.Tuple4;
 import com.movesol.jparsec.functors.Tuple5;
 import com.movesol.jparsec.functors.Tuple6;
+import com.movesol.jparsec.functors.Tuple7;
+import com.movesol.jparsec.functors.Tuple8;
 import com.movesol.jparsec.internal.annotations.Private;
 import com.movesol.jparsec.internal.util.Lists;
 import com.movesol.jparsec.parameters.MapListener;
@@ -311,7 +313,30 @@ public final class Parsers {
       Parser<? extends D> p4, Parser<? extends E> p5, Parser<? extends F> p6) {
     return sequence(p1, p2, p3, p4, p5, p6, Maps.<A, B, C, D, E, F> toTuple6());
   }
+
+  /**
+   * A {@link Parser} that sequentially runs 7 parser objects and collects the results in a
+   * {@link Tuple6} object.
+   */
+  public static <A,B,C,D,E,F,G> Parser<Tuple7<A,B,C,D,E,F,G>> tuple(
+      Parser<? extends A> p1, Parser<? extends B> p2, Parser<? extends C> p3,
+      Parser<? extends D> p4, Parser<? extends E> p5, Parser<? extends F> p6,
+      Parser<? extends G> p7) {
+    return sequence(p1, p2, p3, p4, p5, p6, p7, Maps.<A, B, C, D, E, F, G> toTuple7());
+  }
   
+  /**
+   * A {@link Parser} that sequentially runs 8 parser objects and collects the results in a
+   * {@link Tuple6} object.
+   */
+  public static <A,B,C,D,E,F,G,H> Parser<Tuple8<A,B,C,D,E,F,G,H>> tuple(
+      Parser<? extends A> p1, Parser<? extends B> p2, Parser<? extends C> p3,
+      Parser<? extends D> p4, Parser<? extends E> p5, Parser<? extends F> p6,
+      Parser<? extends G> p7, Parser<? extends H> p8) {
+    return sequence(p1, p2, p3, p4, p5, p6, p7, p8, Maps.<A, B, C, D, E, F, G, H> toTuple8());
+  }
+
+
   /**
    * A {@link Parser} that sequentially runs {@code parsers} one by one and collects the return
    * values in an array.
