@@ -20,6 +20,7 @@ import java.nio.CharBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 
 import com.movesol.jparsec.ParseContext.ErrorType;
 import com.movesol.jparsec.error.Location;
@@ -491,7 +492,66 @@ public abstract class Parser<T> {
 	      }
 	    };
 	  }
+
+	/**
+	 * A {@link Parser} that runs {@code handler} if {@code this} fails and
+	 * {@code accepted} also fails on the Token that triggered an error in
+	 * {@code this}. The result it that of {@code handler}.
+	 */
+  public final Parser<T> recover2(final BiFunction<Integer, ParseErrorDetails, ? extends T> handler, final Parser<Void> accepted) {
+    return recover2(handler, accepted, null);
+  }
   
+ 	/**
+	 * A {@link Parser} that runs {@code consumer} while ignoring its result if
+	 * {@code this} fails and {@code accepted} also fails on the Token that
+	 * triggered an error in {@code this}. The result it that of {@code handler}.
+	 */
+  public final Parser<T> recover2(final BiFunction<Integer, ParseErrorDetails, ? extends T> handler, final Parser<Void> accepted, final Parser<Void> consumer) {
+    return new Parser<T>() {
+      @Override
+      boolean apply(ParseContext ctxt) {
+        int recoverAt = ctxt.at;
+        if (!Parser.this.apply(ctxt)) {
+          if (ctxt.isEof()) {
+            ctxt.raise(ErrorType.UNEXPECTED, "EOF");
+            return false;
+          }
+          
+          final int stepBeforeAccepted = ctxt.step;
+          final int atBeforeAccepted = ctxt.at;
+          final ParseErrorDetails ped = ctxt.renderError();
+
+          if (ctxt.withErrorSuppressed(accepted)) {
+            ctxt.setAt(stepBeforeAccepted, atBeforeAccepted);
+            return false;
+          } else {
+            if (consumer != null) {
+              ctxt.next();
+              while (!(ctxt.isEof()
+                  || ctxt.applyAsDelimiter(consumer)
+                  || ctxt.applyAsDelimiter(accepted.peek()))) {
+                  ctxt.next();
+              }
+            } else {
+              ctxt.next();
+            }
+            Object res = handler.apply(recoverAt, ped);
+            if (res == null) {
+              return false;
+            }
+            ctxt.result = res;
+            if (ctxt instanceof ParserState) {
+              Parsers.applyListener(ctxt, atBeforeAccepted, ctxt.at - 1);
+            }
+          }
+        }
+        return true;
+      }
+    };
+  }
+
+
   /**
    * A {@link Parser} that runs {@code consequence} if {@code this} succeeds, or {@code alternative} otherwise.
    */
