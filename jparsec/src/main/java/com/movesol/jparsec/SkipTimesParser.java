@@ -42,9 +42,10 @@ final class SkipTimesParser extends Parser<Void> {
   private boolean repeatAtMost(int times, ParseContext ctxt) {
     for (int i = 0; i < times; i++) {
       int physical = ctxt.at;
+      int prevPhysical = ctxt.prevAt;
       int logical = ctxt.step;
       if (!parser.apply(ctxt))
-        return ctxt.stillThere(physical, logical);
+        return ctxt.stillThere(physical, prevPhysical, logical);
     }
     return true;
   }

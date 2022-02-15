@@ -54,9 +54,10 @@ final class RepeatTimesParser<T> extends Parser<List<T>> {
   private boolean repeatAtMost(int times, Collection<T> collection, ParseContext ctxt) {
     for (int i = 0; i < times; i++) {
       int physical = ctxt.at;
+      int prevPhysical = ctxt.prevAt;
       int logical = ctxt.step;
       if (!parser.apply(ctxt))
-        return ctxt.stillThere(physical, logical);
+        return ctxt.stillThere(physical, prevPhysical, logical);
       collection.add(parser.getReturn(ctxt));
     }
     return true;

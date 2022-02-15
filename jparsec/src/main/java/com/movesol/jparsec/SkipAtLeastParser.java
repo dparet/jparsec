@@ -39,10 +39,11 @@ final class SkipAtLeastParser extends Parser<Void> {
 
   private boolean applyMany(ParseContext ctxt) {
     int physical = ctxt.at;
+    int prevPhysical = ctxt.prevAt;
     int logical = ctxt.step;
     for (;;logical = ctxt.step) {
       if (!parser.apply(ctxt))
-        return ctxt.stillThere(physical, logical);
+        return ctxt.stillThere(physical, prevPhysical, logical);
       int at2 = ctxt.at;
       if (physical == at2) return true;
       physical = at2;

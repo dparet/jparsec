@@ -323,8 +323,7 @@ public abstract class Parser<T> {
 				if (r) {
 					ctxt.result = map.map(Parser.this.getReturn(ctxt));
 					if (ctxt instanceof ParserState) {
-						int last = ctxt.at - 1;
-						Parsers.applyListener(ctxt, first, last);
+						Parsers.applyListener(ctxt, first, ctxt.prevAt);
 					}
 				}
 				return r;
@@ -386,8 +385,9 @@ public abstract class Parser<T> {
       @Override boolean apply(ParseContext ctxt) {
         int step = ctxt.step;
         int at = ctxt.at;
+        int prevAt = ctxt.prevAt;
         boolean ok = Parser.this.apply(ctxt);
-        if (ok) ctxt.setAt(step, at);
+        if (ok) ctxt.setAt(step, at, prevAt);
         return ok;
       }
       @Override public String toString() {
@@ -407,10 +407,11 @@ public abstract class Parser<T> {
       }
       @Override boolean apply(ParseContext ctxt) {
         int at = ctxt.at;
+        int prevAt = ctxt.prevAt;
         int step = ctxt.step;
         boolean r = Parser.this.apply(ctxt);
         if (r) ctxt.step = step + 1;
-        else ctxt.setAt(step, at);
+        else ctxt.setAt(step, at, prevAt);
         return r;
       }
       @Override public String toString() {
@@ -466,10 +467,11 @@ public abstract class Parser<T> {
 	        	
 	          final int stepBeforeAccepted = ctxt.step;
 	          final int atBeforeAccepted = ctxt.at;
+	          final int prevAtBeforeAccepted = ctxt.prevAt;
 	          final ParseErrorDetails ped = ctxt.renderError();
 
 	          if (ctxt.withErrorSuppressed(accepted)) {
-	            ctxt.setAt(stepBeforeAccepted, atBeforeAccepted);
+	            ctxt.setAt(stepBeforeAccepted, atBeforeAccepted, prevAtBeforeAccepted);
 	            return false;
 	          } else {
   	        	if (consumer != null) {
@@ -484,7 +486,7 @@ public abstract class Parser<T> {
   	        	}
 	            ctxt.result = handler.map(ped);
 	  					if (ctxt instanceof ParserState) {
-	  						Parsers.applyListener(ctxt, atBeforeAccepted, ctxt.at - 1);
+	  						Parsers.applyListener(ctxt, atBeforeAccepted, ctxt.prevAt);
 	  					}
 	          }
 	        }
@@ -520,10 +522,11 @@ public abstract class Parser<T> {
           
           final int stepBeforeAccepted = ctxt.step;
           final int atBeforeAccepted = ctxt.at;
+          final int prevAtBeforeAccepted = ctxt.prevAt;
           final ParseErrorDetails ped = ctxt.renderError();
 
           if (ctxt.withErrorSuppressed(accepted)) {
-            ctxt.setAt(stepBeforeAccepted, atBeforeAccepted);
+            ctxt.setAt(stepBeforeAccepted, atBeforeAccepted, prevAtBeforeAccepted);
             return false;
           } else {
             if (consumer != null) {
@@ -542,7 +545,7 @@ public abstract class Parser<T> {
             }
             ctxt.result = res;
             if (ctxt instanceof ParserState) {
-              Parsers.applyListener(ctxt, atBeforeAccepted, ctxt.at - 1);
+              Parsers.applyListener(ctxt, atBeforeAccepted, prevAtBeforeAccepted);
             }
           }
         }
@@ -568,13 +571,14 @@ public abstract class Parser<T> {
         final Object ret = ctxt.result;
         final int step = ctxt.step;
         final int at = ctxt.at;
+        final int prevAt = ctxt.prevAt;
         
         if (Parser.this.apply(ctxt)) {
           Parser<? extends R> parser = consequence.map(Parser.this.getReturn(ctxt));
           return parser.apply(ctxt);
         }
         final ParseErrorDetails ped = ctxt.renderError();
-        ctxt.set(step, at, ret);
+        ctxt.set(step, at, prevAt, ret);
         return alternative.map(ped).apply(ctxt);
       }
       @Override public String toString() {
@@ -594,11 +598,12 @@ public abstract class Parser<T> {
         final Object ret = ctxt.result;
         final int step = ctxt.step;
         final int at = ctxt.at;
+        final int prevAt = ctxt.prevAt;
         if (ctxt.withErrorSuppressed(Parser.this)) {
           Parser<? extends R> parser = consequence.map(Parser.this.getReturn(ctxt));
           return parser.apply(ctxt);
         }
-        ctxt.set(step, at, ret);
+        ctxt.set(step, at, prevAt, ret);
         return alternative.apply(ctxt);
       }
       @Override public String toString() {
@@ -1014,7 +1019,7 @@ public abstract class Parser<T> {
   	if (params == null) params = new Parameters();
   	
     ParserState state = new ParserState(
-        module, null, tokens, 0, null, 0, tokens, params);
+        module, null, tokens, 0, -1, null, 0, tokens, params);
     
     if (!apply(state)) {
     	Location l = null;

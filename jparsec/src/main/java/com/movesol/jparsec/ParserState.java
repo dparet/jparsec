@@ -49,12 +49,12 @@ final class ParserState extends ParseContext {
     return input[at];
   }
   
-  ParserState(String module, CharSequence source, Token[] input, int at,
+  ParserState(String module, CharSequence source, Token[] input, int at, int prevAt,
       SourceLocator locator, int endIndex, Object result, Parameters params) {
-    super(source, result, at, module, locator, params);
+    super(source, result, at, prevAt, module, locator, params);
     this.input = input;
     this.endIndex = endIndex;
-    
+
     if (params.getParserStateFilter() != null) {
 	    	Predicate<Token> pred = params.getParserStateFilter();
 	    while (this.at < input.length && !pred.test(input[this.at])) {
@@ -77,6 +77,7 @@ final class ParserState extends ParseContext {
   }
   
   void next() {
+      prevAt = at;
   		Predicate<Token> pred = params.getParserStateFilter();
   		if (pred != null) {
   			do {
@@ -86,9 +87,11 @@ final class ParserState extends ParseContext {
   			at++;
   		}
     step ++;
+
   }
   
   void next(int n) {
+    prevAt = at;
 		Predicate<Token> pred = params.getParserStateFilter();
 		if (pred != null) {
 			
@@ -104,6 +107,7 @@ final class ParserState extends ParseContext {
 			at += n;
 		}
     if (n > 0) step++;
+
   }
 
 }

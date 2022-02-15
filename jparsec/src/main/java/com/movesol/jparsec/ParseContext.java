@@ -44,6 +44,9 @@ abstract class ParseContext {
   /** The current position of the input. Points to the token array for token level. */
   int at;
   
+  /** The previous considered position. Can be different than at - 1 when tokens are filtered  */
+  int prevAt;
+
   /** The current logical step. */
   int step;
   
@@ -103,16 +106,17 @@ abstract class ParseContext {
 
   
   //caller should not change input after it is passed in.
-  ParseContext(CharSequence source, int at, String module, SourceLocator locator, Parameters params) {
-    this(source, null, at, module, locator, params);
+  ParseContext(CharSequence source, int at, int prevAt, String module, SourceLocator locator, Parameters params) {
+    this(source, null, at, prevAt, module, locator, params);
   }
   
   ParseContext(
-      CharSequence source, Object ret, int at, String module, SourceLocator locator, Parameters params) {
+      CharSequence source, Object ret, int at, int prevAt, String module, SourceLocator locator, Parameters params) {
     this.source = source;
     this.result = ret;
     this.step = 0;
     this.at = at;
+    this.prevAt = prevAt;
     this.module = module;
     this.locator = locator;
     this.currentErrorAt = at;
@@ -145,6 +149,7 @@ abstract class ParseContext {
    */
   final boolean applyNewNode(Parser<?> parser, String name) {
     int physical = at;
+    int prevPhysical = prevAt;
     int logical = step;
     TreeNode latestChild = trace.getLatestChild();
     trace.push(name);
@@ -153,7 +158,7 @@ abstract class ParseContext {
       trace.pop();
       return true;
     }
-    if (stillThere(physical, logical)) expected(name);
+    if (stillThere(physical, prevPhysical, logical)) expected(name);
     trace.pop();
     // On failure, the erroneous path shouldn't be counted in the parse tree.
     trace.setLatestChild(latestChild);
@@ -164,11 +169,11 @@ abstract class ParseContext {
     // nested is either the token-level parser, or the inner scanner of a subpattern.
     try {
       if (parser.apply(nestedState))  {
-        set(nestedState.step, at, nestedState.result);
+        set(nestedState.step, at, prevAt, nestedState.result);
         return true;
       }
       // index on token level is the "at" on character level
-      set(step, nestedState.getIndex(), null);
+      set(step, nestedState.getIndex(), -1, null);
       
       // always copy error because there could be false alarms in the character level.
       // For example, a "or" parser nested in a "many" failed in one of its branches.
@@ -319,24 +324,26 @@ abstract class ParseContext {
     raise(ErrorType.UNEXPECTED, what);
   }
 
-  final boolean stillThere(int wasAt, int originalStep) {
+  final boolean stillThere(int wasAt, int wasPrevAt, int originalStep) {
     if (step == originalStep) {
       // logical step didn't change, so logically we are still there, undo any physical offset
-      setAt(originalStep, wasAt);
+      setAt(originalStep, wasAt, wasPrevAt);
       return true;
     }
     return false;
   }
   
-  final void set(int step, int at, Object ret) {
+  final void set(int step, int at, int prevAt, Object ret) {
     this.step = step;
     this.at = at;
+    this.prevAt = prevAt;
     this.result = ret;
   }
   
-  final void setAt(int step, int at) {
+  final void setAt(int step, int at, int prevAt) {
     this.step = step;
     this.at = at;
+    this.prevAt = prevAt;
   }
   
   void next() {

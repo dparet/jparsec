@@ -35,7 +35,7 @@ final class ScannerState extends ParseContext {
   }
   
   ScannerState(String module, CharSequence source, int from, SourceLocator locator, Parameters params) {
-    super(source, from, module, locator, params);
+    super(source, from, -1, module, locator, params);
     this.end = source.length();
   }
   
@@ -49,7 +49,7 @@ final class ScannerState extends ParseContext {
    */
   ScannerState(String module, CharSequence source, int from, int end,
       SourceLocator locator, Object originalResult, Parameters params) {
-    super(source, originalResult, from, module, locator, params);
+    super(source, originalResult, from, -1, module, locator, params);
     this.end = end;
   }
   

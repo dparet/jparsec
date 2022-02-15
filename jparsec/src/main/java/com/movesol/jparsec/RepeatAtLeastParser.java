@@ -50,10 +50,11 @@ final class RepeatAtLeastParser<T> extends Parser<List<T>> {
 
   private boolean applyMany(ParseContext ctxt, Collection<T> collection) {
     int physical = ctxt.at;
+    int prevPhysical = ctxt.prevAt;
     int logical = ctxt.step;
     for (;;logical = ctxt.step) {
       if (!parser.apply(ctxt))
-        return ctxt.stillThere(physical, logical);
+        return ctxt.stillThere(physical, prevPhysical, logical);
       int at2 = ctxt.at;
       if (physical == at2) return true;
       physical = at2;

@@ -207,7 +207,7 @@ public final class Parsers {
         if (!lexer.apply(ctxt)) return false;
         Token[] tokens = lexer.getReturn(ctxt);
         ParserState parserState = new ParserState(
-            ctxt.module, ctxt.source, tokens, 0, ctxt.locator, ctxt.getIndex(), tokens, ctxt.params);
+            ctxt.module, ctxt.source, tokens, 0, -1, ctxt.locator, ctxt.getIndex(), tokens, ctxt.params);
         ctxt.getTrace().startFresh(parserState);
         return ctxt.applyNested(parser, parserState);
       }
@@ -734,12 +734,13 @@ public final class Parsers {
       @Override boolean apply(ParseContext ctxt) {
         final Object result = ctxt.result;
         final int at = ctxt.at;
+        final int prevAt = ctxt.prevAt;
         final int step = ctxt.step;
         for(Parser<? extends T> p : alternatives) {
           if (p.apply(ctxt)) {
             return true;
           }
-          ctxt.set(step, at, result);
+          ctxt.set(step, at, prevAt, result);
         }
         return false;
       }
@@ -1214,8 +1215,7 @@ public final class Parsers {
     		final boolean r = parser.apply(ctxt);
 				if (r) {
 					if (ctxt instanceof ParserState) {
-						int last = ctxt.at - 1;
-						Parsers.applyListener(ctxt, first, last);
+						Parsers.applyListener(ctxt, first, ctxt.prevAt);
 					}
 				}
 				return r;
