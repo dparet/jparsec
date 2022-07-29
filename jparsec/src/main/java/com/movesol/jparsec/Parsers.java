@@ -757,6 +757,30 @@ public final class Parsers {
     return or(toArray(alternatives));
   }
   
+  /**
+   * A {@link Parser} that tries each alternative parser in {@code alternatives} at runtime.
+   */
+  public static <T> Parser<T> or(Collection<? extends Parser<? extends T>> alternatives) {
+      return new Parser<T>() {
+          @Override boolean apply(ParseContext ctxt) {
+            final Object result = ctxt.result;
+            final int at = ctxt.at;
+            final int prevAt = ctxt.prevAt;
+            final int step = ctxt.step;
+            for(Parser<? extends T> p : alternatives) {
+              if (p.apply(ctxt)) {
+                return true;
+              }
+              ctxt.set(step, at, prevAt, result);
+            }
+            return false;
+          }
+          @Override public String toString() {
+            return "or";
+          }
+        };
+  }
+  
   /** Allows the overloads of "or()" to call the varargs version of "or" with no ambiguity. */
   private static Parser<Object> alt(Parser<?>... alternatives) {
     return or(alternatives);
